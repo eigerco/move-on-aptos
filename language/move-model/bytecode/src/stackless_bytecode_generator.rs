@@ -327,6 +327,20 @@ impl<'a> StacklessBytecodeGenerator<'a> {
             },
 
             MoveBytecode::Abort => {
+                if self.func_env.is_entry() {
+                    let acquires = self.func_env.get_acquires_global_resources();
+                    if let Some(acquires) = acquires {
+                        for acquire in acquires {
+                            debug!("acquire global resource: {acquire:?}");
+                            let indices = borrow_map.get(&acquire).unwrap_or(&vec![]).clone();
+                            debug!("acquire indices: {indices:?}");
+                            if !indices.is_empty() {
+                                debug!("emitting drop for acquire: {acquire:?}");
+                                self.code.push(mk_call(Operation::Release, vec![], indices));
+                            }
+                        }
+                    }
+                }
                 let error_code_index = self.temp_stack.pop().unwrap();
                 self.code.push(Bytecode::Abort(attr_id, error_code_index));
             },
@@ -1127,10 +1141,11 @@ impl<'a> StacklessBytecodeGenerator<'a> {
             MoveBytecode::WriteRef => {
                 let ref_operand_index = self.temp_stack.pop().unwrap();
                 let val_operand_index = self.temp_stack.pop().unwrap();
-                self.code.push(mk_call(Operation::WriteRef, vec![], vec![
-                    ref_operand_index,
-                    val_operand_index,
-                ]));
+                self.code.push(mk_call(
+                    Operation::WriteRef,
+                    vec![],
+                    vec![ref_operand_index, val_operand_index],
+                ));
             },
 
             MoveBytecode::Add
