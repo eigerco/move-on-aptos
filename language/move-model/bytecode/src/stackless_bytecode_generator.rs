@@ -356,17 +356,15 @@ impl<'a> StacklessBytecodeGenerator<'a> {
             },
 
             MoveBytecode::Ret => {
-                if self.func_env.is_entry() {
-                    let acquires = self.func_env.get_acquires_global_resources();
-                    if let Some(acquires) = acquires {
-                        for acquire in acquires {
-                            debug!("acquire global resource: {acquire:?}");
-                            let indices = borrow_map.get(&acquire).unwrap_or(&vec![]).clone();
-                            debug!("acquire indices: {indices:?}");
-                            if !indices.is_empty() {
-                                debug!("emitting drop for acquire: {acquire:?}");
-                                self.code.push(mk_call(Operation::Release, vec![], indices));
-                            }
+                let acquires = self.func_env.get_acquires_global_resources();
+                if let Some(acquires) = acquires {
+                    for acquire in acquires {
+                        debug!("acquire global resource: {acquire:?}");
+                        let indices = borrow_map.get(&acquire).unwrap_or(&vec![]).clone();
+                        debug!("acquire indices: {indices:?}");
+                        if !indices.is_empty() {
+                            debug!("emitting drop for acquire: {acquire:?}");
+                            self.code.push(mk_call(Operation::Release, vec![], indices));
                         }
                     }
                 }
